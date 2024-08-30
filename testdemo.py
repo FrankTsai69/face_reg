@@ -6,9 +6,20 @@ from function import yunet
 from function import face_visualize as fv
 from function import face_feature as ff
 import threading
+from queue import Queue
+def print_check(thing=None):
+    if name != None:
+        print(f"""\t
+              name:{name[1]['name']} 
+              norm:{name[1]['score']}
+            """,end="")
+    if 
+        print("""\r
+                    未偵測到人臉
+                    """,end="")
 def c(frame):
     cv.imshow("a",frame)
-def f(model_d,model_r,frame):
+def f(model_d,model_r,frame,q):
         data_path='./data/feature.pkl'
         match_meth=1
         match_feature=pd.read_pickle(data_path)
@@ -26,7 +37,6 @@ def f(model_d,model_r,frame):
             name=ff.match(model_r,name,match_feature,match_meth,0.9)
             
             if name[1]['name'] != 'unknown':
-                lock.acquire()
                 output = frame.copy()
                 box_color=(0, 255, 0)
                 text_color=(0, 0, 255)
@@ -36,9 +46,10 @@ def f(model_d,model_r,frame):
                 cv.rectangle(output, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), box_color, 2)
                 #名稱
                 cv.putText(output, '{}'.format(name[1]["name"]), (bbox[0], bbox[1]-10), cv.FONT_HERSHEY_DUPLEX, 0.5, text_color)
-                print(f"\r name:{name[1]['name']} norm:{name[1]['score']}                ",end="") 
-                return output
-            return None
+                print_check(name)
+                # print(f"\r name:{name[1]['name']} norm:{name[1]['score']}",end="") 
+                q.put([1,output])
+        q.put([0,None])
 def main():
     #運行位置
     backend_target_pairs=[cv.dnn.DNN_BACKEND_OPENCV,cv.dnn.DNN_TARGET_CPU]
@@ -73,7 +84,7 @@ def main():
         print("螢幕尺寸:",w,"x",h,"pi")
         model_d.setInputSize([w,h])
         count=10
-        lock = threading.Lock()  
+        q=Queue()  
         while 1:
             #hasFrame:讀取是否成功,frame:讀取影像
             hasFrame,frame=cap.read()
@@ -82,20 +93,28 @@ def main():
                 cv.destroyAllWindows()
                 break
             frame=cv.flip(frame, 1)
-            thread=threading.Thread(target=f,args=(model_d,model_r,frame,lock))
+            thread=threading.Thread(target=f,args=(model_d,model_r,frame,q))
             thread2=threading.Thread(target=c,args=[frame])
-            if count==10:                
-                image=thread.start()
-                if image !=None:
+            
+            if q.empty:        
+                      
+                thread.start()
+                 
+                ls=[]
+
+                ls=q.get()
+                
+                if ls[0] == 1:
                     #thread2.join()
-                    #cv.destroyAllWindows()
-                    #cv.imshow("detection",image)
                     
-                    #cv.waitKey(0)
+                    cv.destroyAllWindows()
                     
-                    #destroyAllWindows()
-                    print("123123123123123123123123123")
-                    lock.release()
+                    cv.waitKey(0)
+                    cv.imshow("detection",ls[1])
+                    cv.waitKey(0)
+                    print("\r 123123123123123123123123123",end="")
+                else:
+                    print_check(thing)
                 count=0
             cv.imshow('face detection',frame)
             #thread2.start()

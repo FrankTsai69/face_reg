@@ -24,32 +24,34 @@ def feature(model,target,name):
 def match(model,name,match_feature,match_type,threshold):
     score_dict={}
 
-    if len(name)==1:    
-        for k in match_feature.keys():
-            f=match_feature[k]
-            if match_type==1:
+    if len(name)==1:
+        
+        if match_type==1:    
+            for k in match_feature.keys():
+                f=match_feature[k]
                 score=round(model.match(name[1]["feature"],f,match_type),2)
                 score_dict[k]=score
-                print(f"\r norm:{score}",end="")
             
-                winner=min(score_dict.items(),key=operator.itemgetter(1))[0]
-                score_winner=score_dict[winner]
-                if score_winner<=threshold:
-                    name[1]["name"]=winner
-                    name[1]["score"]=score_winner
-                    return name
-            elif match_type==0:
+            winner=min(score_dict.items(),key=operator.itemgetter(1))[0]
+            score_winner=score_dict[winner]
+            if score_winner<=threshold and winner !='none':
+                name[1]["name"]=winner
+                name[1]["score"]=score_winner
+                return name
+        elif match_type==0:
+            for k in match_feature.keys():
+                f=match_feature[k]
                 score=round(model.match(name[1]["feature"],f,match_type),2)
                 score_dict[k]=score
                 
-                winner=max(score_dict.item(),key=operator.itemgetter(1))[0]
-                score_winner=score[winner]
-                if score_winner>=threshold:
-                    name[1]["name"]=winner
-                    name[1]["score"]=score_winner
-                    return name
-            name[1]["name"]="unknown"
-            name[1]["score"]=score_winner
+            winner=max(score_dict.item(),key=operator.itemgetter(1))[0]
+            score_winner=score[winner]
+            if score_winner>=threshold and winner !='none':
+                name[1]["name"]=winner[1]
+                name[1]["score"]=score_winner
+                return name
+        name[1]["name"]="unknown"
+        name[1]["score"]=-1
         return name
     elif len(name)>1:
         

@@ -15,6 +15,7 @@ from queue import Queue
 import RPi.GPIO as GPIO
 
 def print_check(name=None,score=None,state=None):
+    return ""
     print(f"""\rstate: name: norm:                           """,end="")
     if name != None and state=="found":
         print(f"""\rstate:{state} name:{name} norm:{score:.2f}""",end="")

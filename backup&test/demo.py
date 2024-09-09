@@ -1,3 +1,4 @@
+
 import numpy as np
 import cv2 as cv 
 import pandas as pd
@@ -104,7 +105,7 @@ if __name__=='__main__':
             tm.stop()
             time+=tm.getTimeSec()
             # print(time)
-            image=fv.visualize(frame,name=name,score_type=match_meth,fps=tm.getFPS())
+            image=fv.visualize(frame,name=name,score_type=match_meth,fps=tm.getFPS(),mode=1)
             
             #新建視窗並輸出視覺化後的影像
             # thread2.start()

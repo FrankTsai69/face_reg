@@ -8,6 +8,7 @@ from function import yunet
 from function import face_visualize as fv
 from function import face_feature as ff
 from function import SaveAbsent as sa
+from function import set_data_sf as sd
 import threading
 import time
 import datetime
@@ -15,6 +16,7 @@ from queue import Queue
 import RPi.GPIO as GPIO
 
 def print_check(name=None,score=None,state=None):
+    return ""
     print(f"""\rstate: name: norm:                           """,end="")
     if name != None and state=="found":
         print(f"""\rstate:{state} name:{name} norm:{score:.2f}""",end="")
@@ -22,25 +24,6 @@ def print_check(name=None,score=None,state=None):
         print(f"""\rstate:not found name: norm:""",end="")
     elif name == None and state=="found":
         print(f"""\rstate:{state} name:unknow norm:-1 """,end="")
-
-def buttcheck(btn,q2):
-    while 1:
-        snd=False
-        fir=False
-        if GPIO.input(btn) and q2.empty():
-            start=time.time()
-            while GPIO.input(btn):
-                fir=True
-            end=time.time()
-            time.sleep(0.2)
-            while GPIO.input(btn):
-                snd=True
-            end2=time.time()
-            if end-start>2 or end2-end>2:
-                q2.put([2])
-            elif fir==True and snd == True:
-                q2.put([3])
-                time.sleep(0.3)
 
 def f(model_d,model_r,frame,q,match_feature):
         match_meth=1
@@ -59,16 +42,13 @@ def f(model_d,model_r,frame,q,match_feature):
                     name=ff.match(model_r,name,match_feature,match_meth,0.9)  
                      
                     if name[1]['name'] != 'unknown':
-                        #output=fv.visualize(frame,name,mode=0)
+                        output=fv.visualize(frame,name,mode=0)
                         print_check(name=name[1]['name'],score=name[1]['score'],state='found')
                         now=datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')
                         sa.main(now,name[1]['name'])
-                        q.put([1,frame,name[1]['name']])
+                        q.put([1,output])
                     else:
-                        print_check()
-                
-            else: q.put([-1,frame,"Please stand in front of the camera!"])
-        else: q.put([-1,frame,"Too many people,unable to identify"])
+                        print_check()                    
         q.put([0,None])
 
 def main():
@@ -76,10 +56,7 @@ def main():
     print("---loading variable---",end="")
     delaytime=50
     count=delaytime/2
-    ls=[0]
-    pir_time=time.time()
-    q=Queue()
-    q2=Queue()  
+    q=Queue()  
     print("\t done.")
     print("---loading HC-SR501---",end="")
     
@@ -89,9 +66,7 @@ def main():
     GPIO.setup(pir,GPIO.IN)
     GPIO.setup(btn,GPIO.IN,pull_up_down=GPIO.PUD_DOWN)
     print("\t done.")
-    
-    thread2=threading.Thread(target=buttcheck,args=(btn,q2))
-    
+            
     print("---loading MatchDatabase---",end="")  
     data_path='./data/test.pkl'  
     match_feature=pd.read_pickle(data_path)
@@ -125,6 +100,20 @@ def main():
                                       target_id=backend_target_pairs[1])
     print('\t done.')
     print("---Model loading complete---")
+    if GPIO.input(btn):
+        start=time.time()
+        l=["\\","-","/","|"]
+        c=0
+        t=0
+        while GPIO.input(btn):
+            m=time.time()
+            t=round(m-start,1)
+            print("...",l[c%4],t,end="\r")
+            c+=1
+        end=time.time()
+        if end-start>=2:
+            print("set_data mode activate...")
+            sd.set_data(model_d,model_r)
     #輸入串流並確認是否接收到設備
     if cv.VideoCapture(0).isOpened():
         print("已偵測到攝影機...")
@@ -144,17 +133,8 @@ def main():
         print("螢幕尺寸:",w,"x",h,"pi")
         print('init done...')
         
-        thread2.daemon=True
-        thread2.start()
-        
         while 1:
             input_state =GPIO.input(pir)
-            if input_state:
-                pirstate=1
-                pir_time=time.time()
-            elif not input_state:
-                if pirstate==1 and time.time()-pir_time >10.0:
-                    pirstate=0
             #hasFrame:讀取是否成功,frame:讀取影像
             hasFrame,frame=cap.read()
             if not hasFrame:
@@ -171,32 +151,23 @@ def main():
 
             frame=cv.flip(frame, 1)
             
-            
-            if pirstate:
+            if input_state==True :
                 frame=fv.visualize(frame,mode=2,size=(w,h))
-                
-                if count >delaytime:
-                    thread=threading.Thread(target=f,args=(model_d,model_r,frame,q,match_feature))
-                    print_check(state="found")
-                    if q.empty():   
-                        thread.start()
-                        ls=[0]
-                        ls=q.get()
-                        if ls[0] != 0:
-                            output=fv.visualize(ls[1],mode=3,string=ls[2])
-                            cv.imshow("face detection",output)
-                            cv.waitKey(1)
-                            time.sleep(1)
-                            pirstate=0
-                        q.queue.clear()
-                        count=0
-                else:
-                    print_check(state='')
-                    count+=1
+                thread=threading.Thread(target=f,args=(model_d,model_r,frame,q,match_feature))
+                print_check(state="found")
+                if q.empty and count > delaytime:   
+                     
+                    thread.start()
+                    ls=[]
+                    ls=q.get()
+                    if ls[0] == 1:
+                        cv.imshow("face detection",ls[1])
+                        cv.waitKey(1)
+                        time.sleep(1)
+                    q.queue.clear()
+                    count=0
             else:
-                if ls[0] !=0:
-                    frame=fv.visualize(frame,mode=3,string=ls[2])
-                
+                print_check(state='')
             cv.imshow('face detection',frame)
             if cv.waitKey(1)&0xff == ord("q"):
                 print("")
@@ -209,21 +180,7 @@ def main():
 
                 print("---end---")
                 break
-            
-            if not q2.empty():
-                butt=q2.get()[0]
-                if butt==2:
-                    print("")
-                    print("closing window",end="")
-                    cv.destroyAllWindows()
-                    print("---done.")
-                    print("closing cam",end="")
-                    cap.release()
-                    print("---done.")
-
-                    print("---end---")
-                    break
-                q2.queue.clear()
+            count+=1
 main()
 
             

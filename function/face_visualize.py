@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 #視覺化函數，在圖片上新增bbox、landmark、fps...
+
 def visualize(image,
               name=None,
               box_color=(0, 255, 0),
@@ -9,6 +10,7 @@ def visualize(image,
               fps=None,score_type=None,
               size=(0,0),
               string=""):
+                  
     output = image.copy()
     landmark_color = [#BGR
         (255,   0,   0), # right eye 藍
@@ -28,8 +30,9 @@ def visualize(image,
         #bbox框
         bbox = det[0:4].astype(np.int32)
         cv.rectangle(output, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), box_color, 2)
-        #名稱
-        cv.putText(output, '{}'.format(name[1]["name"]), (bbox[0], bbox[1]-10), cv.FONT_HERSHEY_DUPLEX, 0.5, text_color)
+        if "name" in name[1].keys():
+            #名稱
+            cv.putText(output, '{}'.format(name[1]["name"]), (bbox[0], bbox[1]-10), cv.FONT_HERSHEY_DUPLEX, 0.5, text_color)
         # 分數
         if score_type==1:
             cv.putText(output, 'norm: {:.2f}'.format(name[i]["score"]), (bbox[0], bbox[1]+30), cv.FONT_HERSHEY_DUPLEX, 0.5, text_color)

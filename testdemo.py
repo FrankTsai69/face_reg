@@ -7,7 +7,10 @@ from function import yunet
 from function import face_visualize as fv
 from function import face_feature as ff
 from function import SaveAbsent as sa
+from function import SaveAbsent as sa
 import threading
+import time
+import datetime
 import time
 import datetime
 from queue import Queue
@@ -23,6 +26,7 @@ def InitResults(results):
     else:
         print(color.red+'\t false'+color.reset)
 def print_check(name=None,score=None,state=None):
+    return ""
     print(f"""\rstate: name: norm:                           """,end="")
     if name != None and state=="found":
         print(f"""\rstate:{state} name:{name} norm:{score:.2f}""",end="")
@@ -283,6 +287,7 @@ def main():
                 print("closing cam",end="")
                 cap.release()
                 print("---done.")
+
 
                 print("---end---")
                 break

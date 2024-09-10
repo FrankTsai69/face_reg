@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="./data.js"></script>
+</head>
+<body>
+<table border="2" id="table">
+    
+    <script>
+        var el =document.getElementById('table')
+        var lis=[]
+    for (i in data){
+        lis.unshift('<tr><td>'+data[i]['name']+'</td><td>'+data[i]['SID']+'</td><td>'+data[i]['SOD']+'</td><td>'+data[i]['state']+'</td></tr>');
+        console.log(i);
+    };
+    var a=`<tr>
+        <td>
+            <span id="title1"></span>
+        </td>
+        <td>
+            <span id="title2"></span>
+        </td>
+        <td>
+            <span id="title3"></span>
+        </td>
+        <td>
+            <span id="title4"></span>
+        </td>
+    </tr>`+lis.join(" ")
+        el.innerHTML=a;
+    </script>
+</table>
+
+
+</body>
+<script>
+    for (i=0;i<col.length;i++){
+        tt="title"+(i+1).toString();
+        document.getElementById(tt).innerText=col[i];
+    };
+    
+    
+</script>
+</html>

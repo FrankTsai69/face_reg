@@ -8,7 +8,7 @@ def visualize(image,
               mode=0,
               text_color=(0, 0, 255),
               fps=None,score_type=None,
-              size=(0,0),
+              size=((0,0),(0,0)),
               string=""):
                   
     output = image.copy()
@@ -60,8 +60,12 @@ def visualize(image,
             for idx, landmark in enumerate(landmarks):
                 cv.circle(output, landmark, 2, landmark_color[idx], 2)#圖原,中心,半徑,顏色,粗細
     elif mode==2:
-        cv.rectangle(output, (0,0), (size[0], size[1]), box_color, 2)
+        cv.rectangle(output, (size[0][0], size[0][1]), (size[1][0], size[1][1]), box_color, 2)
     elif mode==3:
-        cv.putText(output, '{}'.format(string), (320,360), cv.FONT_HERSHEY_DUPLEX, 0.5, text_color)
-
+        if len(string)%2==0:
+            num=int(len(string)/2)*7
+        else:
+            num=int((len(string)+1)/2)*7
+        cv.putText(output, '{}'.format(string), (320-num,360), cv.FONT_HERSHEY_DUPLEX, 0.5, text_color)
+        output=cv.addWeighted(output,1)
     return output

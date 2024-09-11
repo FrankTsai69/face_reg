@@ -28,7 +28,7 @@ def main(date,name):
     if name in plk[today].keys():
         plk[today][name].append(date)
     else: plk[today][name]=[date]
-    print(plk)
+    #print(plk)
     pd.to_pickle(plk,f'./absent/date/{path}')
         
     

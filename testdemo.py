@@ -72,8 +72,6 @@ def f(model_d,model_r,frame,q_r,match_feature):
                     name=ff.match(model_r,name,match_feature,match_meth,0.9)  
                      
                     if name[1]['name'] != 'unknown':
-                        #output=fv.visualize(frame,name,mode=0)
-                        
                         now=datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')
                         sa.main(now,name[1]['name'])
                         q_r.put([1,frame,name[1]['name'],name[1]['score']])
@@ -164,6 +162,9 @@ def main():
         cap.set(3,640)
         cap.set(4,480)
         cap.set(5,60)
+        #fps
+        tm=cv.TickMeter()
+        fps=0
         #讀取當前frame尺寸640*480
         w=int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
         h=int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
@@ -231,6 +232,7 @@ def main():
             print(k+":")
     
         while 1:
+            tm.start()
             st=time.time()#cycle start
             
             #if infrared detection body:start detection
@@ -258,14 +260,20 @@ def main():
                 InitDivider('end',60)
                 break
             
+            #pre-visulize
             #flip frame 180 degrees
             frame=cv.flip(frame, 1)
-            frame=fv.visualize(frame,mode=2,size=((60,60),(580,420)))
+            #frame=fv.visualize(frame,mode=2,size=((60,60),(580,420)))
+            #if fps:
+            #   cv.putText(output, 'FPS: {:.2f}'.format(fps), (0, 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
+            frame=fv.visualize_string(frame,f'FPS:{round(fps,2)}',(0,15),string_scale=0.4,background=True)
+            
+            
             #check HCstate on :start detection face
             if HCstate:
                 
                 #add green border
-                frame=fv.visualize(frame,mode=2,size=((0,0),(w,h)))
+                frame=fv.visualize_border(frame,size=((0,0),(w,h)))
                 
                 #check face_recognize cooldown <=0:start detection face
                 if r_cd<=0:
@@ -281,24 +289,22 @@ def main():
                         #get queue
                         ls=q_r.get()
                         if ls[0] != 0:
-                            
-                            #output=fv.visualize(ls[1],mode=3,string=ls[2])
-                            #cv.imshow("face detection",output)
-                            #cv.waitKey(1)
-                            #time.sleep(1)
                             s_cd=cd_set[2]
                             i_cd=cd_set[1][2]
                         q_r.queue.clear()
                         r_cd=cd_set[0][1]
             if ls !=[0]:
                 if ls[0] !=0 and not s_cd<=0:
-                    frame=fv.visualize(frame,mode=3,string=ls[2],fps=ct)
+                    frame=fv.visualize_string(frame,ls[2],(w/2,h/2+50),align='center',background=True)
                     
             if ls[0] ==1:
                 print_check(state="found",name=ls[2],score=ls[3],r_cd=round(r_cd,1),i_cd=round(i_cd,1),HCstate=HCstate,s_cd=round(s_cd))
             else:
                 print_check(state="",name="",score="",r_cd=round(r_cd,1),i_cd=round(i_cd,1),HCstate=HCstate,s_cd=round(s_cd))
                 
+            tm.stop()
+            fps=tm.getFPS()
+            tm.reset()
             cv.imshow('face detection',frame)
             if cv.waitKey(1)&0xff == ord("q"):
                 print("")
@@ -336,6 +342,9 @@ def main():
             if s_cd >0:
                 s_cd-=ct
            #print("\r","r_cd:",round(r_cd,1),"i_cd:",round(i_cd,1),'HCstate:',HCstate,end=" ")
+           
+           
+           
     else:InitDivider('complete init',60)
 if __name__ == "__main__":
     main()

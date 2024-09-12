@@ -1,71 +1,74 @@
 import cv2 as cv
 import numpy as np
 #視覺化函數，在圖片上新增bbox、landmark、fps...
-
-def visualize(image,
-              name=None,
-              box_color=(0, 255, 0),
-              mode=0,
-              text_color=(0, 0, 255),
-              fps=None,score_type=None,
-              size=((0,0),(0,0)),
-              string=""):
-                  
+def visualize_border(image,color=2,size=1):
     output = image.copy()
-    landmark_color = [#BGR
-        (255,   0,   0), # right eye 藍
-        (  0,   0, 255), # left eye 紅
-        (  0, 255,   0), # nose tip 綠
-        (255,   0, 255), # right mouth corner 粉
-        (  0, 255, 255)  # left mouth corner  黃
+    color_list=[#BGR
+        (255,   0,   0), #0  blue       
+        (  0,   0, 255), #1  red     
+        (  0, 255,   0), #2  green   
+        (255, 255,   0), #3  cyan    
+        (255,   0, 255), #4  pink    
+        (  0, 255, 255), #5  yellow  
+        (255, 255, 255), #6  white   
+        (  0,   0,   0)  #7  black   
     ]
+    cv.rectangle(output, (size[0][0], size[0][1]), (size[1][0], size[1][1]), color_list[color], 2)
+    return output
+    
+def visualize_string(
+          image,                    #image source
+          string,                   #string 
+          coordinate,               #string coordinate
+          string_font=2,            #string font
+          string_scale=0.5,           #string size
+          string_color=7,           #string color;default=7(black)
+          align='left',   
+          background=False,
+          ):      
+    color_list=[#BGR
+        (255,   0,   0), #0  blue       
+        (  0,   0, 255), #1  red     
+        (  0, 255,   0), #2  green   
+        (255, 255,   0), #3  cyan    
+        (255,   0, 255), #4  pink    
+        (  0, 255, 255), #5  yellow  
+        (255, 255, 255), #6  white   
+        (  0,   0,   0)  #7  black   
+    ]
+    font_list=[
+        cv.FONT_HERSHEY_SIMPLEX,        #0 normal size sans-serif font
+        cv.FONT_HERSHEY_PLAIN,          #1 small size sans-serif font
+        cv.FONT_HERSHEY_DUPLEX,         #2 normal size sans-serif font (more complex than FONT_HERSHEY_SIMPLEX)
+        cv.FONT_HERSHEY_COMPLEX,        #3 normal size serif font
+        cv.FONT_HERSHEY_TRIPLEX,        #4 normal size serif font (more complex than FONT_HERSHEY_COMPLEX)
+        cv.FONT_HERSHEY_COMPLEX_SMALL,  #5 smaller version of FONT_HERSHEY_COMPLEX
+        cv.FONT_HERSHEY_SCRIPT_SIMPLEX, #6 hand-writing style font
+        cv.FONT_HERSHEY_SCRIPT_COMPLEX  #7 more complex variant of FONT_HERSHEY_SCRIPT_SIMPLEX
+    ]
+    output = image.copy()
+    font=font_list[string_font]
+    color=color_list[string_color]
 
-    if fps is not None:
-        cv.putText(output, 'FPS: {:.2f}'.format(fps), (0, 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
-    if mode==0:
-        output = image.copy()
-        box_color=(0, 255, 0)
-        text_color=(0, 0, 255)
-        det=name[1]["results"]
-        #bbox框
-        bbox = det[0:4].astype(np.int32)
-        cv.rectangle(output, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), box_color, 2)
-        if "name" in name[1].keys():
-            #名稱
-            cv.putText(output, '{}'.format(name[1]["name"]), (bbox[0], bbox[1]-10), cv.FONT_HERSHEY_DUPLEX, 0.5, text_color)
-        # 分數
-        if score_type==1:
-            cv.putText(output, 'norm: {:.2f}'.format(name[i]["score"]), (bbox[0], bbox[1]+30), cv.FONT_HERSHEY_DUPLEX, 0.5, text_color)
-        elif score_type==0:
-            cv.putText(output, 'Cs: {:.2f}'.format(name[i]["score"]), (bbox[0], bbox[1]+30), cv.FONT_HERSHEY_DUPLEX, 0.5, text_color)
-    elif mode==1:
-        for i in name.keys():
-            det=name[i]["results"]
-            #bbox框
-            bbox = det[0:4].astype(np.int32)
-            cv.rectangle(output, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), box_color, 2)
-            #名稱
-            cv.putText(output, '{}'.format(name[i]["name"]), (bbox[0], bbox[1]-10), cv.FONT_HERSHEY_DUPLEX, 0.5, text_color)
-            # 分數
-            if score_type==1:
-                cv.putText(output, 'norm: {:.2f}'.format(name[i]["score"]), (bbox[0], bbox[1]+30), cv.FONT_HERSHEY_DUPLEX, 0.5, text_color)
-            elif score_type==0:
-                cv.putText(output, 'Cs: {:.2f}'.format(name[i]["score"]), (bbox[0], bbox[1]+30), cv.FONT_HERSHEY_DUPLEX, 0.5, text_color)
-                
-            conf = det[-1]
-            cv.putText(output, '{:.4f}'.format(conf), (bbox[0], bbox[1]+12), cv.FONT_HERSHEY_DUPLEX, 0.5, text_color)
-
-            landmarks = det[4:14].astype(np.int32).reshape((5,2))
-            #print(landmarks)
-            for idx, landmark in enumerate(landmarks):
-                cv.circle(output, landmark, 2, landmark_color[idx], 2)#圖原,中心,半徑,顏色,粗細
-    elif mode==2:
-        cv.rectangle(output, (size[0][0], size[0][1]), (size[1][0], size[1][1]), box_color, 2)
-    elif mode==3:
-        if len(string)%2==0:
-            num=int(len(string)/2)*7
-        else:
-            num=int((len(string)+1)/2)*7
-        cv.putText(output, '{}'.format(string), (320-num,360), cv.FONT_HERSHEY_DUPLEX, 0.5, text_color)
-        output=cv.addWeighted(output,1)
+    
+    #get text size
+    text_w,text_h=cv.getTextSize(string,font,string_scale,1)[0]
+    match align:
+        case 'left':
+            x,y=int(coordinate[0]),int(coordinate[1])
+        case 'center':
+            x,y=int(coordinate[0]-text_w/2),int(coordinate[1])
+        case 'right':
+            x,y=int(coordinate[0]-text_w),int(coordinate[1])
+    if background:
+        bg_x=text_w+10
+        bg_y=text_h+10
+        size=output[int(y-bg_y//2-2):int(y+bg_y//2-2),x+1:(x+bg_x+1)]
+        bg=np.zeros((size.shape[0],size.shape[1],3),dtype=np.uint8)
+        bg[:,:,:]=255
+        img_add=cv.addWeighted(size,0.7,bg,0.3,100)
+        output[int(y-bg_y//2-2):int(y+bg_y//2-2),x+1:(x+bg_x+1)]=img_add
+        
+    cv.putText(output, string, (x,y),font,string_scale,color)
+    
     return output

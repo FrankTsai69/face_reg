@@ -17,7 +17,7 @@ def visualize_border(image,color=2,size=1):
     return output
     
 def visualize_string(
-          image,                    #image source
+          output,                    #image source
           string,                   #string 
           coordinate,               #string coordinate
           string_font=2,            #string font
@@ -46,7 +46,7 @@ def visualize_string(
         cv.FONT_HERSHEY_SCRIPT_SIMPLEX, #6 hand-writing style font
         cv.FONT_HERSHEY_SCRIPT_COMPLEX  #7 more complex variant of FONT_HERSHEY_SCRIPT_SIMPLEX
     ]
-    output = image.copy()
+    #output = image.copy()
     font=font_list[string_font]
     color=color_list[string_color]
 
@@ -72,3 +72,11 @@ def visualize_string(
     cv.putText(output, string, (x,y),font,string_scale,color)
     
     return output
+if __name__=='__main__':
+    cap=cv.VideoCapture(0)
+    frame=cap.read()[1]
+    fps=1
+    import timeit
+    a=timeit.timeit("visualize_string(frame,f'FPS:{round(fps,2)}',(0,15),string_scale=0.4,background=True)",setup='from __main__ import visualize_string',number=1,globals=globals())
+    print(a)
+    

@@ -14,7 +14,6 @@ from queue import Queue
 import RPi.GPIO as GPIO
 
 class color():
-    #print(color.red+message+color.reset)
     red='\033[31m'
     green='\033[32m'
     reset='\033[0m'
@@ -29,13 +28,14 @@ def InitResults(results):
         print(color.green+'\t done'+color.reset)
     else:
         print(color.red+'\t false'+color.reset)
-def print_check(name=None,score=None,state=None,r_cd=None,i_cd=None,HCstate=None,s_cd=None):
+def print_check(q_time,state=None,name=None,score=None,r_cd=None,i_cd=None,HCstate=None,s_cd=None):
     dict1={'state':str(state),'name':str(name),'score':str(score),'r_cd':str(r_cd),'i_cd':str(i_cd),'s_cd':str(s_cd),'HCstate':str(HCstate)}    
     print("\033[A\x1b[2K"*(len(dict1.keys())+1))
     
     for i in range(len(dict1.keys())):
         k=list(dict1.keys())[i]
         print(k+": "+dict1[k])
+    q_time.put([1])
 def buttcheck(btn,q_btn):
     while 1:
         snd=False
@@ -106,6 +106,7 @@ def main():
         ls=[0]
         q_r=Queue()
         q_btn=Queue()
+        q_time=Queue()
     except:
         InitResults(False)
     else:
@@ -135,6 +136,7 @@ def main():
     try:
         thread2=threading.Thread(target=buttcheck,args=(btn,q_btn))
         thread2.daemon=True
+        
     except:
         InitResults(False)
     else:
@@ -216,13 +218,13 @@ def main():
     #start thread
     try:
         thread2.start()
+        
     except:
         InitResults(False)
     else:
         InitResults(True)
         init_list[8]=True
     
-
     if not False in init_list:
         InitDivider('complete init',60)
         #start
@@ -232,6 +234,9 @@ def main():
             print(k+":")
     
         while 1:
+            st=0
+            end=0
+            ct=0
             tm.start()
             st=time.time()#cycle start
             
@@ -247,6 +252,10 @@ def main():
             #hasFrame:讀取是否成功,frame:讀取影像
             hasFrame,frame=cap.read()
             if not hasFrame:
+                try:
+                    thread3.join
+                except:
+                    pass
                 print("")
                 print("未偵測到影像")
                 InitDivider('endding program',60)                
@@ -263,11 +272,7 @@ def main():
             #pre-visulize
             #flip frame 180 degrees
             frame=cv.flip(frame, 1)
-            #frame=fv.visualize(frame,mode=2,size=((60,60),(580,420)))
-            #if fps:
-            #   cv.putText(output, 'FPS: {:.2f}'.format(fps), (0, 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
             frame=fv.visualize_string(frame,f'FPS:{round(fps,2)}',(0,15),string_scale=0.4,background=True)
-            
             
             #check HCstate on :start detection face
             if HCstate:
@@ -290,23 +295,38 @@ def main():
                         ls=q_r.get()
                         if ls[0] != 0:
                             s_cd=cd_set[2]
-                            i_cd=cd_set[1][2]
+                            if ls[0] ==1:
+                                i_cd=cd_set[1][2]
                         q_r.queue.clear()
                         r_cd=cd_set[0][1]
             if ls !=[0]:
                 if ls[0] !=0 and not s_cd<=0:
                     frame=fv.visualize_string(frame,ls[2],(w/2,h/2+50),align='center',background=True)
                     
-            if ls[0] ==1:
-                print_check(state="found",name=ls[2],score=ls[3],r_cd=round(r_cd,1),i_cd=round(i_cd,1),HCstate=HCstate,s_cd=round(s_cd))
+            if q_time.empty():
+                if ls[0] ==1:
+                    
+                    thread3=threading.Thread(target=print_check,args=(q_time,"found",ls[2],ls[3],round(r_cd,1),round(i_cd,1),HCstate,round(s_cd,1)))
+                    
+                else:
+                    
+                    thread3=threading.Thread(target=print_check,args=(q_time,"","","",round(r_cd,1),round(i_cd,1),HCstate,round(s_cd,1)))
+            
+                thread3.daemon=True
+                thread3.start()
             else:
-                print_check(state="",name="",score="",r_cd=round(r_cd,1),i_cd=round(i_cd,1),HCstate=HCstate,s_cd=round(s_cd))
+                q_time.queue.clear()
                 
             tm.stop()
             fps=tm.getFPS()
             tm.reset()
             cv.imshow('face detection',frame)
+            
             if cv.waitKey(1)&0xff == ord("q"):
+                try:
+                    thread3.join
+                except:
+                    pass
                 print("")
                 InitDivider('endding program',60)                
                 print(f"{'closing window':40s}",end="")
@@ -315,13 +335,15 @@ def main():
                 print(f"{'closing cam':40s}",end="")
                 cap.release()
                 InitResults(True)
-
                 InitDivider('end',60)
                 break
-            
             if not q_btn.empty():
                 butt=q_btn.get()[0]
                 if butt==2:
+                    try:
+                        thread3.join
+                    except:
+                        pass
                     print("")
                     InitDivider('endding program',60)
                     print(f"{'closing window':40s}",end="")
@@ -330,23 +352,19 @@ def main():
                     print(f"{'closing cam':40s}",end="")
                     cap.release()
                     InitResults(True)
-
                     InitDivider('end',60)
                     break
                 q_btn.queue.clear()
-            ct=time.time()-st
-            if r_cd >0 and HCstate:
-                r_cd-=ct
-            if i_cd >0:
-                i_cd-=ct
-            if s_cd >0:
-                s_cd-=ct
-           #print("\r","r_cd:",round(r_cd,1),"i_cd:",round(i_cd,1),'HCstate:',HCstate,end=" ")
-           
-           
-           
+            end=time.time()
+            if end !=0 and st !=0:
+                ct=round(end-st,1)
+                if r_cd >0 and HCstate:
+                    r_cd-=ct
+                if i_cd >0:
+                    i_cd-=ct
+                if s_cd >0:
+                    s_cd-=ct
+               
     else:InitDivider('complete init',60)
 if __name__ == "__main__":
     main()
-
-            

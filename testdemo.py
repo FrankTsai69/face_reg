@@ -28,6 +28,11 @@ def InitResults(results):
         print(color.green+'\t done'+color.reset)
     else:
         print(color.red+'\t false'+color.reset)
+def print_init():
+    print()
+    dict1={'state':'','name':'','score':'','r_cd':'','i_cd':'','s_cd':'','HCstate':''}
+    for k in dict1.keys():
+        print(k+":")
 def print_check(q_time,state=None,name=None,score=None,r_cd=None,i_cd=None,HCstate=None,s_cd=None):
     dict1={'state':str(state),'name':str(name),'score':str(score),'r_cd':str(r_cd),'i_cd':str(i_cd),'s_cd':str(s_cd),'HCstate':str(HCstate)}    
     print("\033[A\x1b[2K"*(len(dict1.keys())+1))
@@ -43,10 +48,14 @@ def buttcheck(btn,q_btn):
         if GPIO.input(btn) and q_btn.empty():
             start=time.time()
             while GPIO.input(btn):
+                if time.time()-start>=2:
+                    break
                 fir=True
             end=time.time()
             time.sleep(0.2)
             while GPIO.input(btn):
+                if time.time()-start>=2:
+                    break
                 snd=True
             end2=time.time()
             if end-start>2 or end2-end>2:
@@ -85,7 +94,7 @@ def main():
     init_list=[False,False,False,False,False,False,False,False,False]
 
     InitDivider('loading variable')
-    print(f"{'time':40s}",end="")
+    print(f"{'variable':40s}",end="")
     #time :init_list 0
     try:
         cd_set=[[2,3],[15,10,5],3]#second;index:0 for recognizer,1 for infrared(15:duration time,10:cooldown time)
@@ -93,6 +102,7 @@ def main():
         r_cd=3 #recognizer cooldown
         i_cd=3 #infrared cooldown
         s_cd=cd_set[2] #show cooldown
+        print_mode=False
     except:
         InitResults(False)
     else:
@@ -228,10 +238,7 @@ def main():
     if not False in init_list:
         InitDivider('complete init',60)
         #start
-        print()
-        dict1={'state':'','name':'','score':'','r_cd':'','i_cd':'','s_cd':'','HCstate':''}
-        for k in dict1.keys():
-            print(k+":")
+        print_init()
     
         while 1:
             st=0
@@ -272,7 +279,8 @@ def main():
             #pre-visulize
             #flip frame 180 degrees
             frame=cv.flip(frame, 1)
-            frame=fv.visualize_string(frame,f'FPS:{round(fps,2)}',(0,15),string_scale=0.4,background=True)
+            if print_mode:
+                frame=fv.visualize_string(frame,f'FPS:{round(fps,2)}',(0,15),string_scale=0.4,background=True)
             
             #check HCstate on :start detection face
             if HCstate:
@@ -303,20 +311,20 @@ def main():
                 if ls[0] !=0 and not s_cd<=0:
                     frame=fv.visualize_string(frame,ls[2],(w/2,h/2+50),align='center',background=True)
                     
-            if q_time.empty():
-                if ls[0] ==1:
-                    
-                    thread3=threading.Thread(target=print_check,args=(q_time,"found",ls[2],ls[3],round(r_cd,1),round(i_cd,1),HCstate,round(s_cd,1)))
-                    
-                else:
-                    
-                    thread3=threading.Thread(target=print_check,args=(q_time,"","","",round(r_cd,1),round(i_cd,1),HCstate,round(s_cd,1)))
-            
-                thread3.daemon=True
-                thread3.start()
-            else:
-                q_time.queue.clear()
+            if print_mode:
+                if q_time.empty():
+                    if ls[0] ==1:
+                        
+                        thread3=threading.Thread(target=print_check,args=(q_time,"found",ls[2],ls[3],round(r_cd,1),round(i_cd,1),HCstate,round(s_cd,1)))
+                        
+                    else:
+                        
+                        thread3=threading.Thread(target=print_check,args=(q_time,"","","",round(r_cd,1),round(i_cd,1),HCstate,round(s_cd,1)))
                 
+                    thread3.daemon=True
+                    thread3.start()
+                else:
+                    q_time.queue.clear()
             tm.stop()
             fps=tm.getFPS()
             tm.reset()
@@ -339,6 +347,17 @@ def main():
                 break
             if not q_btn.empty():
                 butt=q_btn.get()[0]
+                if butt==3:
+                    try:
+                        
+                        if print_mode:
+                            print_mode=False
+                        else:
+                            print_mode=True
+                    except:
+                        pass
+                        
+                        
                 if butt==2:
                     try:
                         thread3.join
